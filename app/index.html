@@ -1,0 +1,103 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Haunted Terminal — the graveyard for crypto tokens</title>
+<style>
+:root{--bg:#0a0f0a;--panel:#111a12;--line:#2a3d2c;--ink:#d8e6d0;--dim:#8aa184;--alive:#7CFC9A;--haunted:#ffb347;--dead:#9aa0a6;--ghost:#bfefff}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font-family:ui-monospace,Menlo,Consolas,monospace}
+header{padding:22px 20px 8px;border-bottom:1px solid var(--line)}
+h1{margin:0;font-size:26px;letter-spacing:1px}h1 span{color:var(--alive)}
+.sub{color:var(--dim);font-size:13px;margin-top:6px}
+main{max-width:980px;margin:0 auto;padding:18px 16px 40px}
+.search{display:flex;gap:8px;margin:14px 0}
+.search input{flex:1;background:#0d150e;border:1px solid var(--line);color:var(--ink);padding:12px;font:inherit;border-radius:8px}
+.search button{background:#1d3a22;color:var(--alive);border:1px solid #3a6b40;padding:12px 18px;font:inherit;border-radius:8px;cursor:pointer}
+.samples{font-size:12px;color:var(--dim)}.samples button{background:none;border:1px solid var(--line);color:var(--dim);border-radius:20px;padding:4px 10px;margin:2px;cursor:pointer;font:inherit}
+#status{margin:14px 0;color:var(--dim);min-height:20px}
+.graveyard{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px}
+@media(max-width:760px){.graveyard{grid-template-columns:1fr}}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:12px;padding:16px;min-height:220px}
+.card h2{margin:0 0 10px;font-size:14px;letter-spacing:2px;color:var(--dim)}
+.big{font-size:44px;line-height:1;margin:6px 0}
+.ALIVE{color:var(--alive)}.HAUNTED{color:var(--haunted)}.DEAD{color:var(--dead)}
+.kv{display:flex;justify-content:space-between;gap:10px;padding:6px 0;border-top:1px dashed #243024;font-size:13px}
+.kv b{font-weight:600;text-align:right}
+.tomb{margin:10px auto 4px;width:110px;background:#2b2f2b;border:2px solid #555;border-radius:55px 55px 6px 6px;display:flex;align-items:center;justify-content:center;flex-direction:column;transition:box-shadow .3s}
+.tomb .rip{font-size:11px;color:#cfcfcf}.tomb .yr{font-size:20px}
+.ALIVE .tomb{box-shadow:0 0 28px rgba(124,252,154,.55);border-color:var(--alive)}
+.HAUNTED .tomb{box-shadow:0 0 22px rgba(255,179,71,.5);border-color:var(--haunted)}
+.DEAD .tomb{box-shadow:none;opacity:.75}
+.note{font-size:12px;color:var(--dim);margin-top:10px}
+.warn{margin-top:16px;border:1px solid #5a3a1a;background:#1a1208;color:#e8c890;padding:12px;border-radius:10px;font-size:12px}
+footer{color:var(--dim);font-size:12px;margin-top:18px}
+a{color:var(--ghost)}
+</style></head><body>
+<header><h1>👻 Haunted Terminal <span>— the graveyard for crypto tokens</span></h1>
+<div class="sub">Paste a Solana mint or a BNB address. The dead get a tombstone, the living glow, the unverified stay in the fog.</div></header>
+<main>
+<form class="search" id="f"><input id="q" placeholder="Solana mint, or 0x BNB address…" autocomplete="off" spellcheck="false"><button>Summon 👻</button></form>
+<div class="samples">Try: <button data-q="EPjFWdd5AufqSSqeM2qN1xzybapC8G4wEGGkZwyTDt1v">USDC</button>
+<button data-q="DezXAZ8z7PnrnRJjz3wXBoRgixCa6xjnB7YaB1pPB263">BONK</button>
+<button data-q="0x8b3826ff116acda6493533513cd919f7c7995820">BNB address</button></div>
+<div id="status">The graveyard is quiet. Summon a token.</div>
+<div class="graveyard" id="yard" hidden>
+  <section class="card" id="graveCard"><h2>🪦 THE GRAVE — AUDIT</h2><div id="grave"></div></section>
+  <section class="card"><h2>🔮 THE SEANCE — AGENT ID</h2><div id="seance"></div></section>
+  <section class="card"><h2>📈 TICKER FROM BEYOND — MARKET</h2><div id="market"></div></section>
+</div>
+<div class="warn">⚠️ Risk warning: this is a read-only audit + market viewer, not financial advice. A high score does not mean a token is safe. Never invest money you cannot afford to lose. No wallet, no signing, no trading here.</div>
+<footer>Sources, labelled on every number: DexScreener (market + pairs) · Solana public RPC (mint / freeze authority) · BNB public RPC, Agent ID contract 0x60b9…022f. Unverified fields are shown as <b>unverified</b>, never invented. Built new for Kiroween 2026 (Costume Contest) with Kiro — spec, steering, hooks, MCP in <code>/.kiro</code>.</footer>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const fmt=(n,d=2)=>n==null?'unverified':Number(n).toLocaleString('en-US',{maximumFractionDigits:d});
+const esc=s=>String(s??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+async function summon(q){
+  $('#status').textContent='👻 Summoning '+q.slice(0,24)+'…';
+  const r=await fetch('/api/verdict?q='+encodeURIComponent(q));
+  const v=await r.json();
+  $('#yard').hidden=false;
+  if(v.error){$('#status').textContent='Error: '+esc(v.error);return;}
+  $('#status').textContent='Fetched '+esc(v.fetchedAt)+' · sources: '+esc((v.sources||[]).join(', '))+(v.cached?' · cached 60s':'');
+  // Grave
+  if(v.audit){
+    const a=v.audit;
+    $('#graveCard').className='card '+a.state;
+    $('#grave').innerHTML=`<div class="big ${a.state}">${a.score}/100 · ${a.state}</div>
+    <div class="tomb" style="height:${a.tombstoneHeightPx||90}px"><span class="rip">${a.state==='DEAD'?'R.I.P.':a.state}</span><span class="yr">${a.state==='ALIVE'?'✦':a.state==='HAUNTED'?'~':'✝'}</span></div>
+    <div class="note">Tombstone height = holder concentration (unknown here → medium, unverified). Glow = liquidity: brighter means deeper.</div>
+    <div class="kv"><span>Mint authority</span><b>${a.mintAuthority===false?'none ✓':a.mintAuthority===null?'unverified':'PRESENT ✗'}</b></div>
+    <div class="kv"><span>Freeze authority</span><b>${a.freezeAuthority===false?'none ✓':a.freezeAuthority===null?'unverified':'PRESENT ✗'}</b></div>
+    <div class="kv"><span>Confidence</span><b>${esc(a.confidence)}${a.unknown?.length?' — unverified: '+esc(a.unknown.join(', ')):''}</b></div>
+    ${a.deductions?.length?`<div class="note">Deductions: ${esc(a.deductions.join(' · '))}</div>`:''}`;
+  } else {
+    $('#grave').innerHTML='<div class="big">—</div><div class="note">No Solana audit for a BNB address. Paste a Solana mint for the grave.</div>';
+  }
+  // Seance
+  if(v.agentId){
+    const g=v.agentId;
+    $('#seance').innerHTML=g.holdsAgentId===null?`<div class="big">🌫️</div><div class="note">Agent ID unverified — ${esc(g.note||'')}</div>`
+    :g.holdsAgentId?`<div class="big ALIVE">👻 HAS Agent ID</div><div class="note">This address holds an Agent ID (balance ${esc(g.balance)}). The spirit answers.</div>`
+    :`<div class="big DEAD">🕳️ No Agent ID</div><div class="note">balanceOf = 0 on 0x60b9…022f. No spirit here.</div>`;
+    $('#seance').innerHTML+=`<div class="kv"><span>Contract</span><b>0x60b9…022f</b></div><div class="kv"><span>Address</span><b>${esc(g.address||'')}</b></div>`;
+  } else {
+    $('#seance').innerHTML='<div class="big">🔮</div><div class="note">Paste a BNB 0x address to summon its Agent ID. Solana mints have no Agent ID here.</div>';
+  }
+  // Market
+  if(v.market){
+    const m=v.market;
+    $('#market').innerHTML=`<div class="big">${m.priceUsd!=null?'$'+fmt(m.priceUsd,6):'unverified'}</div>
+    <div class="kv"><span>Symbol</span><b>${esc(m.symbol||'')}</b></div>
+    <div class="kv"><span>24h change</span><b>${m.priceChangeH24!=null?fmt(m.priceChangeH24)+'%':'unverified'}</b></div>
+    <div class="kv"><span>24h volume</span><b>${m.volumeH24!=null?'$'+fmt(m.volumeH24,0):'unverified'}</b></div>
+    <div class="kv"><span>Liquidity</span><b>${m.liquidityUsd!=null?'$'+fmt(m.liquidityUsd,0):'unverified'}</b></div>
+    <div class="kv"><span>Market cap / FDV</span><b>${m.marketCap!=null?'$'+fmt(m.marketCap,0):m.fdv!=null?'$'+fmt(m.fdv,0):'unverified'}</b></div>
+    <div class="kv"><span>DEX</span><b>${esc(m.dexId||'')}</b></div>
+    <div class="note">Source: DexScreener, ${esc(v.fetchedAt)}</div>`;
+  } else {
+    $('#market').innerHTML='<div class="big">🌫️</div><div class="note">No market data — no DEX pair found. The token may be dead or unlisted.</div>';
+  }
+  if(v.warnings?.length)$('#status').textContent+=' · '+v.warnings.join(' ');
+}
+$('#f').addEventListener('submit',e=>{e.preventDefault();const q=$('#q').value.trim();if(q)summon(q);});
+document.querySelectorAll('.samples button').forEach(b=>b.addEventListener('click',()=>{$('#q').value=b.dataset.q;summon(b.dataset.q);}));
+</script></body></html>

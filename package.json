@@ -1,0 +1,1 @@
+{"description":"The graveyard for crypto tokens: haunted UI that encodes risk. Kiroween 2026 Costume Contest.","engines":{"node":">=22"},"license":"MIT","name":"haunted-terminal","scripts":{"start":"node app/server.mjs","test":"node --test test/score.test.mjs"},"type":"module","version":"0.1.0"}

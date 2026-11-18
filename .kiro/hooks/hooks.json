@@ -1,0 +1,1 @@
+{"hooks":[{"command":"node --check app/server.mjs && node --check mcp-server/server.mjs && npm test","description":"Typecheck changed servers and run unit tests on every save.","event":"onFileSave","name":"check-and-test-on-save"}],"version":"1"}

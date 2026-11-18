@@ -1,0 +1,1 @@
+{"mcpServers":{"haunted-terminal":{"args":["mcp-server/server.mjs"],"autoApprove":["audit_token","lookup_agent_id","market_quote"],"command":"node","disabled":false,"env":{}}}}
